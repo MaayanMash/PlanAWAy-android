@@ -24,4 +24,12 @@ public class SubTask {
     public void setDone(boolean done) {
         isDone = done;
     }
+
+    @Override
+    public String toString() {
+        return "SubTask{" +
+                "dID='" + dID + '\'' +
+                ", isDone=" + isDone +
+                '}';
+    }
 }

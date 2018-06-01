@@ -1,17 +1,16 @@
 package com.example.maayanmash.planaway.Model.entities;
 
-import java.util.Date;
 import java.util.List;
 
 public class Task {
     private String mID;
-    private String dID;
+    private String uID;
     private String date;
     private List<SubTask> dests;
 
-    public Task(String mID, String dID, String date, List<SubTask> dests) {
+    public Task(String mID, String uID, String date, List<SubTask> dests) {
         this.mID = mID;
-        this.dID = dID;
+        this.uID = uID;
         this.date = date;
         this.dests = dests;
     }
@@ -25,12 +24,12 @@ public class Task {
         this.mID = mID;
     }
 
-    public String getdID() {
-        return dID;
+    public String getuID() {
+        return uID;
     }
 
-    public void setdID(String dID) {
-        this.dID = dID;
+    public void setuID(String uID) {
+        this.uID = uID;
     }
 
     public String getDate() {
@@ -47,5 +46,15 @@ public class Task {
 
     public void setDests(List<SubTask> dests) {
         this.dests = dests;
+    }
+
+    @Override
+    public String toString() {
+        return "Task{" +
+                "mID='" + mID + '\'' +
+                ", uID='" + uID + '\'' +
+                ", date='" + date + '\'' +
+                ", dests=" + dests.toString() +
+                '}';
     }
 }
