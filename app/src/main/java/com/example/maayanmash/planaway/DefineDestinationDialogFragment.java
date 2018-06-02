@@ -4,12 +4,13 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.DialogInterface;
-import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.example.maayanmash.planaway.Model.entities.AddressHolder;
+
 public class DefineDestinationDialogFragment extends DialogFragment {
-    private MyAddress destination=null;
+    private AddressHolder destination=null;
     private double lat;
     private double lon;
     private String marker_name;
@@ -22,7 +23,7 @@ public class DefineDestinationDialogFragment extends DialogFragment {
         builder.setMessage("Would You Like "+marker_name+" to Be Your Final Destination?")
                 .setPositiveButton("YES", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        destination=new MyAddress(lat,lon);
+                        destination=new AddressHolder(lat,lon);
                         Log.d("TAG","yes");
                     }
                 })
@@ -39,7 +40,7 @@ public class DefineDestinationDialogFragment extends DialogFragment {
 
     public void setLon(double lon){this.lon=lon;}
 
-    public MyAddress getDestination(){return this.destination;}
+    public AddressHolder getDestination(){return this.destination;}
 
     public void setMarker_name(String marker_name){this.marker_name=marker_name;}
 

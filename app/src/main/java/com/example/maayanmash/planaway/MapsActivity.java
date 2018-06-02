@@ -3,24 +3,31 @@ package com.example.maayanmash.planaway;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.example.maayanmash.planaway.Model.Constants;
 import com.example.maayanmash.planaway.Model.ModelFirebase;
 import com.example.maayanmash.planaway.Model.entities.Destination;
+import com.example.maayanmash.planaway.Model.entities.AddressHolder;
+import com.example.maayanmash.planaway.Model.entities.TaskRow;
 import com.example.maayanmash.planaway.Model.entities.User;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -39,79 +46,79 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+//public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
     private List<List<Address>> addressList = null;
     private Location myLocation;
     private static final int MY_LOCATION_REQUEST_CODE = 500;
-
-    private JSONArray jsonArray = new JSONArray();
-    private List<MyAddress> addressResponse = new ArrayList<>();
-    private List<MyAddress> addressMarkers =new ArrayList<>();
-
-    private final String urlServer = "http://193.106.55.167:8889/directions/api/v1.0/list";
     private View mapView;
-
+    private Intent serviceIntent = null;
+    private JSONArray jsonArray = new JSONArray();
+    private List<AddressHolder> addressResponse = new ArrayList<>();
+    private List<AddressHolder> addressMarkers = new ArrayList<>();
+    private List<Destination> destinationsList;
+    private Map<String, String> mapDestination = new HashMap<>();
     private String uID;
-    private DefineDestinationDialogFragment destDialogFragment= new DefineDestinationDialogFragment();
-
+    private String todayTaskID = null;
+    private DefineDestinationDialogFragment destDialogFragment = new DefineDestinationDialogFragment();
     private LoadToast lt;
 
+    private Double zoom_lat;
+    private Double zoom_long;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
+
         this.uID = getIntent().getExtras().getString("uid");
 
         //////////// FireBase /////////////
-        ModelFirebase.getInstance().getMyUserDetails(uID, new GetUserDetailsCallback() {
+        ModelFirebase.getInstance().getMyDestinationsByID(uID, new GetDestinationsForUserIDCallback() {
             @Override
-            public void onComplete(User user) {
-                Log.d("TAG", user.toString());
-            }
-
-            @Override
-            public void onFailure() {}
-
-            @Override
-            public void onDestination(ArrayList<Destination> destinations){}
-        });
-
-        ModelFirebase.getInstance().getMyDestinationsByID(uID, new GetUserDetailsCallback() {
-            @Override
-            public void onDestination(ArrayList<Destination> destinations) {
-                Log.d("TAG",destinations.toString());
-                for (Destination dest:destinations){
-                    LatLng latLng = new LatLng(dest.getLatitude(),dest.getLongitude());
+            public void onDestination(ArrayList<Destination> destinations, String taskID, List<TaskRow> taskRowList) {
+                destinationsList = destinations;
+                todayTaskID = taskID;
+                Double sum_lat = 0.0;
+                Double sum_long = 0.0;
+                float zoomLevel = 10;
+                Log.d("TAG", destinations.toString());
+                for (Destination dest : destinations) {
+                    LatLng latLng = new LatLng(dest.getLatitude(), dest.getLongitude());
                     mMap.addMarker(new MarkerOptions().position(latLng).title(dest.getName()));
-                    addressMarkers.add(new MyAddress(dest.getLatitude(),dest.getLongitude()));
-
+                    addressMarkers.add(new AddressHolder(dest.getLatitude(), dest.getLongitude()));
+                    sum_lat += dest.getLatitude();
+                    sum_long += dest.getLongitude();
                     JSONObject jsonObject = new JSONObject();
                     try {
-                        jsonObject.put("address", dest.getLatitude()+", "+dest.getLongitude());
+                        String latLng_str = dest.getLatitude() + ", " + dest.getLongitude();
+                        jsonObject.put("address", latLng_str);
                         jsonArray.put(jsonObject);
+                        mapDestination.put(latLng_str, dest.getdID());
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                 }
+                zoom_lat = sum_lat / destinations.size();
+                zoom_long = sum_long / destinations.size();
+                LatLng new_zoom = new LatLng(zoom_lat, zoom_long);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new_zoom, zoomLevel));
+
             }
-            @Override
-            public void onFailure() {}
-            public void onComplete(User user){}
-
         });
-
-        //////////// FireBase /////////////
 
         this.addressList = new ArrayList<>();
 
@@ -124,6 +131,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+    }
+
+    @Override
+    public void onBackPressed() {
+        //super.onBackPressed();
     }
 
     @Override
@@ -144,8 +156,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         myLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
+
         if (myLocation != null) {
             JSONObject jsonObject = new JSONObject();
+            ModelFirebase.getInstance().updateMyLocation(myLocation.getLatitude(), myLocation.getLongitude());
             try {
                 jsonObject.put("address", myLocation.getLatitude() + ", " + myLocation.getLongitude());
                 this.jsonArray.put(jsonObject);
@@ -155,27 +169,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         LatLng israel = new LatLng(31.046051, 34.851611999999996);
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(israel, zoomLevel));
-
+        /*
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                for (MyAddress address:addressMarkers){
-                    Log.d("TAG","address= "+address.latitude+","+address.longitude);
-                    Log.d("TAG","marker= "+marker.getPosition().latitude+","+marker.getPosition().longitude);
-                    if(address.latitude==marker.getPosition().latitude &&
-                            address.longitude==marker.getPosition().longitude){
+                for (AddressHolder address : addressMarkers) {
+                    Log.d("TAG", "address= " + address.latitude + "," + address.longitude);
+                    Log.d("TAG", "marker= " + marker.getPosition().latitude + "," + marker.getPosition().longitude);
+                    if (address.latitude == marker.getPosition().latitude &&
+                            address.longitude == marker.getPosition().longitude) {
                         destDialogFragment.setLat(marker.getPosition().latitude);
-                       destDialogFragment.setLon(marker.getPosition().longitude);
+                        destDialogFragment.setLon(marker.getPosition().longitude);
                         destDialogFragment.setMarker_name(marker.getTitle());
-                        destDialogFragment.show(getFragmentManager(),"TAG");
+                        destDialogFragment.show(getFragmentManager(), "TAG");
                         return true;
                     }
                 }
 
                 Log.d("TAG", "false");
+
                 return false;
             }
-        });
+        });*/
 
     }
 
@@ -191,7 +206,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    public void checkMyLocation(){
+    public void checkMyLocation() {
         if (myLocation == null) {
             LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -200,7 +215,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             myLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
             mMap.setMyLocationEnabled(true);
             //ModelFirebase.getInstance().updateMyLocation(this.uID,myLocation.getLatitude(),myLocation.getLongitude());
-            addressMarkers.add(new MyAddress(myLocation.getLatitude(),myLocation.getLongitude()));
+            //addressMarkers.add(new AddressHolder(myLocation.getLatitude(), myLocation.getLongitude()));
 
             JSONObject jsonObject = new JSONObject();
             try {
@@ -224,7 +239,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 address = geocoder.getFromLocationName(location, 1);
                 addressList.add(address);
                 LatLng latLng = new LatLng(address.get(0).getLatitude(), address.get(0).getLongitude());
-                addressMarkers.add(new MyAddress(address.get(0).getLatitude(),address.get(0).getLongitude()));
+                addressMarkers.add(new AddressHolder(address.get(0).getLatitude(), address.get(0).getLongitude()));
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put("address", address.get(0).getLatitude() + ", " + address.get(0).getLongitude());
                 this.jsonArray.put(jsonObject);
@@ -244,7 +259,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void getDirection2(View view) {
         String url = getRequestUrl3();
         Log.d("server", "url3- " + url);
-        TaskRequestDirections taskRequestDirections = new TaskRequestDirections(this.mMap,lt);
+        TaskRequestDirections taskRequestDirections = new TaskRequestDirections(this.mMap, lt);
         taskRequestDirections.execute(url);
         //lt.success();
     }
@@ -288,9 +303,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public void sendToServer(View view) {
         lt.show();
+
         Server server = new Server();
         server.execute("");
-        //new LocationTask().execute();
+    }
+
+    public void startLocationService(List<AddressHolder> locationsList) {
+        StringBuilder builder = new StringBuilder("");
+        int size = locationsList.size();
+        for (int i = 1; i < size - 1; i++) {
+            builder.append(mapDestination.get(locationsList.get(i).latitude + ", " + locationsList.get(i).longitude) + ",");
+            builder.append(locationsList.get(i).latitude + "," + locationsList.get(i).longitude + "->");
+
+        }
+        builder.append(mapDestination.get(locationsList.get(size - 1).latitude + ", " + locationsList.get(size - 1).longitude) + ",");
+        builder.append(locationsList.get(size - 1).latitude + "," + locationsList.get(size - 1).longitude);
+
+        Intent intent = new Intent(getBaseContext(), MyService.class);
+        intent.putExtra("locations", builder.toString());
+        serviceIntent = intent;
+        startService(intent);
     }
 
     public class Server extends AsyncTask<String, Void, String> {
@@ -298,7 +330,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         protected String doInBackground(String... strings) {
             try {
-                URL url = new URL(urlServer);
+                URL url = new URL(Constants.SEARCHING_SERVER_URL);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
@@ -311,10 +343,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (myLocation != null)
                     jsonParam.put("source", myLocation.getLatitude() + ", " + myLocation.getLongitude());
 
-                if(destDialogFragment.getDestination()!=null)
-                    jsonParam.put("destination",destDialogFragment.getDestination().latitude+", "+destDialogFragment.getDestination().longitude);
+                if (destDialogFragment.getDestination() != null)
+                    jsonParam.put("destination", destDialogFragment.getDestination().latitude + ", " + destDialogFragment.getDestination().longitude);
                 else
-                    jsonParam.put("destination","empty");
+                    jsonParam.put("destination", "empty");
 
                 Log.d("server", jsonParam.toString());
 
@@ -365,16 +397,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     for (int i = 0; i < res.length(); i++) {
                         String str = (String) res.get(i);
                         String[] parts = str.split(", ");
-                        addressResponse.add(new MyAddress(Double.parseDouble(parts[0]), Double.parseDouble(parts[1])));
+                        addressResponse.add(new AddressHolder(Double.parseDouble(parts[0]), Double.parseDouble(parts[1])));
                     }
 
                     Log.d("server", addressResponse.toString());
                     getDirection2(mapView);
 
+
+                    startLocationService(addressResponse);
+
+
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-            } else{
+            } else {
                 lt.error();
                 Toast.makeText(getApplicationContext(), s, Toast.LENGTH_SHORT).show();
             }
@@ -382,30 +418,39 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     //FireBase
-    public interface GetUserDetailsCallback{
-        public void onComplete(User user);
-        public void onFailure();
+    public interface GetUserDetailsCallback {
+        void onComplete(User user);
 
-        void onDestination(ArrayList<Destination> destinations);
+        void onFailure();
+    }
+
+    public interface GetDestinationsForUserIDCallback {
+        void onDestination(ArrayList<Destination> destinations, String taskID, List<TaskRow> taskRowList);
     }
 
     //Menu
     @SuppressLint("ResourceType")
     public boolean onCreateOptionsMenu(Menu menu) {
-        //super.onCreateOptionsMenu(menu);
-        getMenuInflater().inflate(R.menu.main_manu,menu);
-        //return true;
-        return super.onCreateOptionsMenu(menu);
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.main_manu, menu);
+
+        return true;
     }
 
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.MyTasks:
-                Log.d("TAG","My Tasks");
+                Intent intent = new Intent(getApplicationContext(), MyTasksList.class);
+                startActivity(intent);
+
                 return true;
-            case R.id.MyAccount:
-                Log.d("TAG","My Account");
+            case R.id.Logout:
+                Log.d("TAG", "My Account");
+                ModelFirebase.getInstance().cleanData();
+                stopService(new Intent(getBaseContext(), MyService.class));
+                Intent i = new Intent(getApplicationContext(), LoginActivity.class);
+                startActivity(i);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -414,32 +459,69 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     /////get my location
-//    public class LocationTask extends AsyncTask<Void, Void, Void> {
-//        volatile boolean stop=false;
-//
-//        @Override
-//        protected Void doInBackground(Void... voids) {
-//            while(!stop){
-//                checkMyLocation();
-//                try {
-//                    Thread.sleep(3000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//            return null;
-//        }
-//
-//        @Override
-//        protected void onPostExecute(Void v) {
-//            super.onPostExecute(v);
-//
-//        }
-//    }
+    public class LocationTask extends AsyncTask<Void, Void, Void> {
+        volatile boolean stop = false;
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            while (!stop) {
+                checkMyLocation();
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void v) {
+            super.onPostExecute(v);
+
+        }
+    }
 
 
+    public void startGoogleMaps(View view) {
+        if (addressResponse != null && addressResponse.size() > 0) {
+            int size = this.addressResponse.size();
+            String str_url = "http://www.google.com/maps/dir/?api=1&origin=";
+            str_url += myLocation.getLatitude() + "," + myLocation.getLongitude() + "&";
+            LatLng dest = dest = new LatLng(addressResponse.get(size - 1).latitude, addressResponse.get(size - 1).longitude);
+            str_url += "destination=" + dest.latitude + "," + dest.longitude;
+
+            String str_waypoints = "";
+
+            //there is wayPoints
+            if (size >= 3) {
+                //LatLng waypoints=null;
+                str_waypoints = "&waypoints=";
+
+                LatLng waypoints = new LatLng(addressResponse.get(1).latitude, addressResponse.get(1).longitude);
+                str_waypoints += waypoints.latitude + "," + waypoints.longitude;
+
+                for (int i = 2; i < size - 1; i++) {
+                    waypoints = new LatLng(addressResponse.get(i).latitude, addressResponse.get(i).longitude);
+                    str_waypoints += "|" + waypoints.latitude + "," + waypoints.longitude;
+                }
+
+                str_url += str_waypoints;
+            }
+            str_url += "&travelmode=driving";
+
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(str_url));
+                startActivity(intent);
+            } catch (Exception e) {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.googlemaps"));
+                startActivity(intent);
+            }
+        } else
+            Toast.makeText(getApplicationContext(), "You need to planAway in order to start navigation", Toast.LENGTH_SHORT).show();
 
 
+    }
 
 
 }

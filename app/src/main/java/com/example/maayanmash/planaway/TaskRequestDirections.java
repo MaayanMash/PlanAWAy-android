@@ -65,6 +65,7 @@ public class TaskRequestDirections extends AsyncTask<String, Void, String> {
             }
 
             responseString = stringBuffer.toString();
+            Log.d("server",responseString);
 
             bufferedReader.close();
             inputStreamReader.close();

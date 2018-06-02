@@ -7,8 +7,8 @@
         android:title="My Tasks"
         app:showAsAction="ifRoom" />
 
-    <item android:id="@+id/MyAccount"
-        android:title="My Account"
+    <item android:id="@+id/Logout"
+        android:title="Log Out"
         app:showAsAction="ifRoom" />
 
 </menu>

@@ -1,5 +1,7 @@
 package com.example.maayanmash.planaway.Model.entities;
 
+import com.example.maayanmash.planaway.Model.Constants;
+
 public class Destination {
     private String dID;
     private String mID;
@@ -8,12 +10,17 @@ public class Destination {
     private double latitude;
     private double longitude;
 
-
     public Destination(String dID, String mID,String name, String address, double latitude, double longitude) {
         this.dID = dID;
         this.mID = mID;
         this.name = name;
         this.address = address;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    public Destination (String dID, Double latitude, Double longitude){
+        this.dID = dID;
         this.latitude = latitude;
         this.longitude = longitude;
     }
@@ -71,5 +78,20 @@ public class Destination {
                 ", latitude=" + latitude +
                 ", longitude=" + longitude +
                 '}';
+    }
+
+    public boolean isCloseEnough(Destination address) {
+        Double latDiff = (this.latitude - address.latitude);
+        latDiff *= latDiff;
+        latDiff *= 10000000;
+        Double longDiff = (this.longitude - address.longitude);
+        longDiff *= longDiff;
+        longDiff *= 10000000;
+
+        Double diff = (latDiff + longDiff);
+        if(diff <= Constants.MAX_DIFF_FOR_DESTINATION_ARRIVAL)
+            return true;
+        else
+            return false;
     }
 }
