@@ -211,7 +211,7 @@ public class LoginActivity extends AppCompatActivity {
                 public void onComplete(@NonNull Task<AuthResult> task) {
                     if (task.isSuccessful()) {
                         showProgress(false);
-                        Intent intent = new Intent(getSelfContext(), MapsActivity.class);
+                        Intent intent = new Intent(getSelfContext(), MapsWithOutUserActivity.class);
                         startActivity(intent);
                     } else {
                         showProgress(false);

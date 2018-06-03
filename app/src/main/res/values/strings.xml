@@ -2,4 +2,5 @@
     <string name="app_name">PlanAWay</string>
     <string name="title_activity_maps">PlanAWay</string>
     <string name="dialog_fire_missiles">Would You Like It to Be Your Final Destination?</string>
+    <string name="title_activity_maps_with_out_user">Map</string>
 </resources>

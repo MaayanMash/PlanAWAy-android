@@ -26,11 +26,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MapsActivity"></activity>
+        <activity android:name=".MapsActivity" />
 
         <service android:name=".MyService" />
 
-        <activity android:name=".MyTasksList"></activity>
+        <activity android:name=".MyTasksList" />
+        <activity
+            android:name=".MapsWithOutUserActivity"
+            android:label="@string/title_activity_maps_with_out_user"></activity>
     </application>
 
 </manifest>
