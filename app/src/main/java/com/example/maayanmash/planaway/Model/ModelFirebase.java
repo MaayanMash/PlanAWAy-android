@@ -53,14 +53,16 @@ public class ModelFirebase {
                     Double longitude = (Double) map.get("longitude");
                     User user = new User(uID, name, phone, address, latitude, longitude, null, mid);
                     callback.onComplete(user);
-                } else Log.d("TAG", "else");
+                } else callback.onFailure();
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                Log.d("TAG", "failed to get user");
+
+
 
             }
+
         });
 
         return null;
@@ -183,7 +185,7 @@ public class ModelFirebase {
         firebaseDatabase.getReference("users").child(uID).child("longitude").setValue(longitude);
     }
 
-    public void updateDestinationArrivalForTask(String dID) {
+    public void updateDestinationArrivalForTask(String dID,boolean isDone) {
         FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
 
         Query query = FirebaseDatabase.getInstance().getReference("tasks/" + todayTaskID).child("destinations");
@@ -197,7 +199,7 @@ public class ModelFirebase {
                         return;
 
                     if (((String) subTask.get("did")).equals(dID)) {
-                        firebaseDatabase.getReference("tasks/" + todayTaskID).child("destinations").child("" + dest.getKey().toString()).child("isDone").setValue(true);
+                        firebaseDatabase.getReference("tasks/" + todayTaskID).child("destinations").child("" + dest.getKey().toString()).child("isDone").setValue(isDone);
                         break;
                     }
                 }

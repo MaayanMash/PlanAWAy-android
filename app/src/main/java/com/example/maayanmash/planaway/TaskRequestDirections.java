@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import net.steamcrafted.loadtoast.LoadToast;
 
@@ -19,9 +20,13 @@ public class TaskRequestDirections extends AsyncTask<String, Void, String> {
     private GoogleMap mMap;
     private LoadToast lt;
 
+    //private taskParser taskParser;
+
     public TaskRequestDirections(GoogleMap mMap,LoadToast lt){
         this.mMap=mMap;
         this.lt=lt;
+        //this.taskParser=new taskParser(mMap,lt);
+
     }
 
     @Override
@@ -79,4 +84,6 @@ public class TaskRequestDirections extends AsyncTask<String, Void, String> {
         }
         return responseString;
     }
+
+    //public PolylineOptions getPolylineOptions() { return taskParser.getPolylineOptions(); }
 }

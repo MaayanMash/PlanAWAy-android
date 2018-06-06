@@ -68,6 +68,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private JSONArray jsonArray = new JSONArray();
     private List<AddressHolder> addressResponse = new ArrayList<>();
     private List<AddressHolder> addressMarkers = new ArrayList<>();
+    private List<MarkerOptions> markerOptionsList= new ArrayList<>();
     private List<Destination> destinationsList;
     private Map<String, String> mapDestination = new HashMap<>();
     private String uID;
@@ -77,6 +78,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Double zoom_lat;
     private Double zoom_long;
+
+    //TaskRequestDirections taskRequestDirections=new TaskRequestDirections(mMap,lt);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,7 +101,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Log.d("TAG", destinations.toString());
                 for (Destination dest : destinations) {
                     LatLng latLng = new LatLng(dest.getLatitude(), dest.getLongitude());
-                    mMap.addMarker(new MarkerOptions().position(latLng).title(dest.getName()));
+                    MarkerOptions markerOptions= new MarkerOptions().position(latLng).title(dest.getName());
+                    markerOptionsList.add(markerOptions);
+                    mMap.addMarker(markerOptions);
                     addressMarkers.add(new AddressHolder(dest.getLatitude(), dest.getLongitude()));
                     sum_lat += dest.getLatitude();
                     sum_long += dest.getLongitude();
@@ -238,31 +243,47 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             Geocoder geocoder = new Geocoder(this);
             try {
                 address = geocoder.getFromLocationName(location, 1);
-                addressList.add(address);
-                LatLng latLng = new LatLng(address.get(0).getLatitude(), address.get(0).getLongitude());
-                addressMarkers.add(new AddressHolder(address.get(0).getLatitude(), address.get(0).getLongitude()));
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("address", address.get(0).getLatitude() + ", " + address.get(0).getLongitude());
-                this.jsonArray.put(jsonObject);
+                Log.d("ADDRESS", address.toString());
+                if (!address.isEmpty()) {
+                    addressList.add(address);
+                    LatLng latLng = new LatLng(address.get(0).getLatitude(), address.get(0).getLongitude());
+                    addressMarkers.add(new AddressHolder(address.get(0).getLatitude(), address.get(0).getLongitude()));
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("address", address.get(0).getLatitude() + ", " + address.get(0).getLongitude());
+                    this.jsonArray.put(jsonObject);
 
-                mMap.addMarker(new MarkerOptions().position(latLng).title(location));
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoomLevel));
+                    MarkerOptions markerOptions = new MarkerOptions().position(latLng).title(location);
+                    markerOptionsList.add(markerOptions);
+                    mMap.addMarker(markerOptions);
+                    //mMap.addMarker(new MarkerOptions().position(latLng).title(location));
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoomLevel));
+                }
+                else
+                    Toast.makeText(getApplicationContext(), "Location Not Found", Toast.LENGTH_SHORT).show();
 
-            } catch (IOException e) {
-                e.printStackTrace();
             } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
                 e.printStackTrace();
             }
             locationSearch.setText("");
         }
     }
 
+    private void addAllmarkerToMapAgain(){
+        for (MarkerOptions marker:markerOptionsList) {
+            mMap.addMarker(marker);
+        }
+    }
+
     public void getDirection2(View view) {
         String url = getRequestUrl3();
         Log.d("server", "url3- " + url);
+        mMap.clear();
+        addAllmarkerToMapAgain();
         TaskRequestDirections taskRequestDirections = new TaskRequestDirections(this.mMap, lt);
+        //taskRequestDirections.getPolylineOptions().visible(false);
         taskRequestDirections.execute(url);
-        //lt.success();
     }
 
     private String getRequestUrl3() {
@@ -304,7 +325,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void sendToServer(View view) {
         lt.show();
-
         Server server = new Server();
         server.execute("");
     }
@@ -394,6 +414,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.d("server", "onPostExecute- " + s);
             if (!s.equals("error response") && !s.equals("Could not connect to server")) {
                 try {
+                    addressResponse.clear();
                     JSONObject myResponse = new JSONObject(s);
                     JSONArray res = (JSONArray) myResponse.get("SortedLocations");
 

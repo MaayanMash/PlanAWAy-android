@@ -85,7 +85,9 @@ public class MyTasksList extends AppCompatActivity {
                     public void onClick(View view) {
                         int index = (int) view.getTag();
                         TaskRow tr = data.get(index);
-                        tr.setDone(!tr.isDone());
+                        Boolean isDone=!tr.isDone();
+                        tr.setDone(isDone);
+                        ModelFirebase.getInstance().updateDestinationArrivalForTask(tr.getDid(),isDone);
                     }
                 });
             }

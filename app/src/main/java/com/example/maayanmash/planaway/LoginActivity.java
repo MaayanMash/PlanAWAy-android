@@ -18,6 +18,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.maayanmash.planaway.Model.ModelFirebase;
+import com.example.maayanmash.planaway.Model.entities.User;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
@@ -169,10 +171,26 @@ public class LoginActivity extends AppCompatActivity {
                 @Override
                 public void onComplete(@NonNull Task<AuthResult> task) {
                     if (task.isSuccessful()) {
-                        showProgress(false);
-                        Intent intent = new Intent(getSelfContext(), MapsActivity.class);
-                        intent.putExtra("uid",task.getResult().getUser().getUid());
-                        startActivity(intent);
+                        ModelFirebase.getInstance().getMyUserDetails(task.getResult().getUser().getUid(), new MapsActivity.GetUserDetailsCallback() {
+                            @Override
+                            public void onComplete(User user) {
+                                showProgress(false);
+                                Intent intent = new Intent(getSelfContext(), MapsActivity.class);
+                                intent.putExtra("uid",task.getResult().getUser().getUid());
+                                startActivity(intent);
+                            }
+
+                            @Override
+                            public void onFailure() {
+                                showProgress(false);
+                                Intent intent = new Intent(getSelfContext(), MapsWithOutUserActivity.class);
+                                startActivity(intent);
+                            }
+                        });
+//                        showProgress(false);
+//                        Intent intent = new Intent(getSelfContext(), MapsActivity.class);
+//                        intent.putExtra("uid",task.getResult().getUser().getUid());
+//                        startActivity(intent);
 
                     } else {
                         showProgress(false);

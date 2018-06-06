@@ -7,6 +7,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.example.maayanmash.planaway.Model.ModelFirebase;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -24,6 +25,7 @@ public class taskParser extends AsyncTask<String, Void, List<List<HashMap<String
 
     private GoogleMap mMap;
     private LoadToast lt;
+    //private PolylineOptions polylineOptions=null;
 
     public taskParser(GoogleMap mMap, LoadToast lt){
         this.mMap=mMap;
@@ -72,6 +74,7 @@ public class taskParser extends AsyncTask<String, Void, List<List<HashMap<String
 
         if(polylineOptions!= null){
             mMap.addPolyline(polylineOptions);
+            polylineOptions.visible(true);
             lt.success();
 
         }else{
@@ -82,4 +85,5 @@ public class taskParser extends AsyncTask<String, Void, List<List<HashMap<String
 
     }
 
+    //public PolylineOptions getPolylineOptions() { return polylineOptions; }
 }

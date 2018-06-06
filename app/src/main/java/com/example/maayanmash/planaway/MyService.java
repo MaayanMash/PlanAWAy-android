@@ -46,7 +46,7 @@ public class MyService extends Service {
 
                 if(addHolder.isCloseEnough(locationsList.get(0))){
                     Log.d("TAG","is remove "+location);
-                    ModelFirebase.getInstance().updateDestinationArrivalForTask(locationsList.get(0).getdID());
+                    ModelFirebase.getInstance().updateDestinationArrivalForTask(locationsList.get(0).getdID(),true);
                     locationsList.remove(0);
                 }
             }

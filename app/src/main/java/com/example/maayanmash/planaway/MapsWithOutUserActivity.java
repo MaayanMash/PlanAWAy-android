@@ -61,6 +61,7 @@ public class MapsWithOutUserActivity extends AppCompatActivity implements OnMapR
     private JSONArray jsonArray = new JSONArray();
     private List<AddressHolder> addressResponse = new ArrayList<>();
     private List<AddressHolder> addressMarkers = new ArrayList<>();
+    private List<MarkerOptions> markerOptionsList= new ArrayList<>();
     private List<Destination> destinationsList;
     private Map<String, String> mapDestination = new HashMap<>();
     private LoadToast lt;
@@ -185,15 +186,21 @@ public class MapsWithOutUserActivity extends AppCompatActivity implements OnMapR
             Geocoder geocoder = new Geocoder(this);
             try {
                 address = geocoder.getFromLocationName(location, 1);
-                addressList.add(address);
-                LatLng latLng = new LatLng(address.get(0).getLatitude(), address.get(0).getLongitude());
-                addressMarkers.add(new AddressHolder(address.get(0).getLatitude(), address.get(0).getLongitude()));
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("address", address.get(0).getLatitude() + ", " + address.get(0).getLongitude());
-                this.jsonArray.put(jsonObject);
+                if (!address.isEmpty()) {
+                    addressList.add(address);
+                    LatLng latLng = new LatLng(address.get(0).getLatitude(), address.get(0).getLongitude());
+                    addressMarkers.add(new AddressHolder(address.get(0).getLatitude(), address.get(0).getLongitude()));
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("address", address.get(0).getLatitude() + ", " + address.get(0).getLongitude());
+                    this.jsonArray.put(jsonObject);
 
-                mMap.addMarker(new MarkerOptions().position(latLng).title(location));
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoomLevel));
+                    MarkerOptions markerOptions = new MarkerOptions().position(latLng).title(location);
+                    markerOptionsList.add(markerOptions);
+                    mMap.addMarker(markerOptions);
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoomLevel));
+                }
+                else
+                    Toast.makeText(getApplicationContext(), "Location Not Found", Toast.LENGTH_SHORT).show();
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -204,9 +211,17 @@ public class MapsWithOutUserActivity extends AppCompatActivity implements OnMapR
         }
     }
 
+    private void addAllmarkerToMapAgain(){
+        for (MarkerOptions marker:markerOptionsList) {
+            mMap.addMarker(marker);
+        }
+    }
+
     public void getDirection2(View view) {
         String url = getRequestUrl3();
         Log.d("server", "url3- " + url);
+        mMap.clear();
+        addAllmarkerToMapAgain();
         TaskRequestDirections taskRequestDirections = new TaskRequestDirections(this.mMap, lt);
         taskRequestDirections.execute(url);
     }
@@ -324,6 +339,7 @@ public class MapsWithOutUserActivity extends AppCompatActivity implements OnMapR
             Log.d("server", "onPostExecute- " + s);
             if (!s.equals("error response") && !s.equals("Could not connect to server")) {
                 try {
+                    addressResponse.clear();
                     JSONObject myResponse = new JSONObject(s);
                     JSONArray res = (JSONArray) myResponse.get("SortedLocations");
 
